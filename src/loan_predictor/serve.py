@@ -48,8 +48,8 @@ MODEL, MODEL_PATH = _load_model()
 class Application(BaseModel):
     """Loan application. Missing fields are imputed by the model pipeline.
 
-    For Umba's car loan, property_value = vehicle value and
-    loan_to_value_ratio = loan_amount / vehicle_value (policy caps at 70)."""
+    The loan is housing-backed: property_value is the value of the mortgaged
+    property (the collateral) and loan_to_value_ratio = loan_amount / property_value."""
     income: Optional[float] = Field(None, description="Annual income in $")
     loan_amount: Optional[float] = Field(None, description="Requested loan amount in $")
     property_value: Optional[float] = Field(None, description="Collateral/asset value in $")

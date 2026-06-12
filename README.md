@@ -83,9 +83,9 @@ PYTHONPATH=src .venv/bin/uvicorn loan_predictor.serve:app --reload
 ```
 
 `POST /predict` with an application returns a 0-100 score, an approve/deny decision
-at the tuned threshold, and the top SHAP reasons (XGBoost contributions). For Umba's
-car loan, `property_value` = vehicle value and `loan_to_value_ratio` = loan/vehicle
-value (policy caps at 70). Example:
+at the tuned threshold, and the top SHAP reasons (XGBoost contributions). The loan is
+housing-backed: `property_value` is the mortgaged property's value (the collateral) and
+`loan_to_value_ratio` = loan / property value. Example:
 
 ```json
 {"income": 180000, "loan_amount": 200000, "property_value": 500000,
@@ -94,5 +94,6 @@ value (policy caps at 70). Example:
 
 ## Next (per design doc)
 
-FastAPI serving + SHAP reasons → Prefect orchestration → Evidently drift monitoring →
-LlamaIndex alt-data → real vehicle-loan data (L&T) for the literal car-collateral case.
+FastAPI serving + SHAP reasons → Postgres persistence (users, applications, decisions) →
+Prefect orchestration → Evidently drift monitoring → Docker Compose. Richer applicant
+features (credit score, prior defaults) are the main lever to lift denied-class recall.
