@@ -1,0 +1,10 @@
+polars
+scikit-learn
+pandas
+numpy
+joblib
+xgboost
+pyarrow
+fastapi
+uvicorn[standard]
+httpx

@@ -1,0 +1,14 @@
+{
+  "best_params": {
+    "colsample_bytree": 0.7124,
+    "gamma": 0.2713,
+    "learning_rate": 0.0382,
+    "max_depth": 9,
+    "min_child_weight": 1,
+    "n_estimators": 544,
+    "reg_lambda": 2.4738,
+    "subsample": 0.9089
+  },
+  "search_cv_pr_auc": 0.9471,
+  "test_pr_auc": 0.9513
+}

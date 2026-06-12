@@ -1,0 +1,119 @@
+{
+  "results": [
+    {
+      "model": "XGBoost",
+      "trained_on": "full train set",
+      "threshold": 0.234,
+      "pr_auc": 0.9525,
+      "roc_auc": 0.8852,
+      "recall_denied": 0.553,
+      "confusion_matrix": [
+        [
+          25872,
+          20879
+        ],
+        [
+          4778,
+          143669
+        ]
+      ],
+      "fit_seconds": 36.5
+    },
+    {
+      "model": "Random Forest",
+      "trained_on": "full train set",
+      "threshold": 0.283,
+      "pr_auc": 0.9518,
+      "roc_auc": 0.8845,
+      "recall_denied": 0.557,
+      "confusion_matrix": [
+        [
+          26051,
+          20700
+        ],
+        [
+          4870,
+          143577
+        ]
+      ],
+      "fit_seconds": 222.6
+    },
+    {
+      "model": "Decision Tree",
+      "trained_on": "full train set",
+      "threshold": 0.213,
+      "pr_auc": 0.9403,
+      "roc_auc": 0.8712,
+      "recall_denied": 0.541,
+      "confusion_matrix": [
+        [
+          25273,
+          21478
+        ],
+        [
+          4598,
+          143849
+        ]
+      ],
+      "fit_seconds": 25.9
+    },
+    {
+      "model": "SVM (RBF)",
+      "trained_on": "subsample 20,000 rows",
+      "threshold": 0.362,
+      "pr_auc": 0.9329,
+      "roc_auc": 0.8455,
+      "recall_denied": 0.397,
+      "confusion_matrix": [
+        [
+          18558,
+          28193
+        ],
+        [
+          4128,
+          144319
+        ]
+      ],
+      "fit_seconds": 30.6
+    },
+    {
+      "model": "KNN",
+      "trained_on": "subsample 50,000 rows",
+      "threshold": 0.478,
+      "pr_auc": 0.9296,
+      "roc_auc": 0.8456,
+      "recall_denied": 0.446,
+      "confusion_matrix": [
+        [
+          20831,
+          25920
+        ],
+        [
+          4117,
+          144330
+        ]
+      ],
+      "fit_seconds": 0.5
+    },
+    {
+      "model": "Logistic Regression",
+      "trained_on": "full train set",
+      "threshold": 0.201,
+      "pr_auc": 0.9202,
+      "roc_auc": 0.8067,
+      "recall_denied": 0.311,
+      "confusion_matrix": [
+        [
+          14559,
+          32192
+        ],
+        [
+          4063,
+          144384
+        ]
+      ],
+      "fit_seconds": 32.0
+    }
+  ],
+  "best": "XGBoost"
+}

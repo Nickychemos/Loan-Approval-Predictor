@@ -1,0 +1,21 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# Data — never commit raw or processed data (PII / size)
+data/raw/
+data/processed/
+*.csv
+*.parquet
+
+# Models & reports artifacts
+models/*.joblib
+models/*.pkl
+
+# Secrets / env
+.env
+.kaggle/
+
+# OS
+.DS_Store
