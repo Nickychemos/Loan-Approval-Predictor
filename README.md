@@ -75,17 +75,33 @@ Brier score improves **0.127 → 0.099**, so predicted probabilities are trustwo
 Artifacts: `models/loan_approval_model_calibrated.joblib`, `reports/cv_results.json`,
 `reports/calibration.json` (includes the reliability curve).
 
-## Serving (FastAPI)
+## Serving (Django REST Framework + Postgres)
+
+The model is served through a Django/DRF API backed by PostgreSQL (run via Docker).
+`src/loan_predictor/predictor.py` holds the reusable inference; the DRF view scores
+each application and persists the decision.
 
 ```bash
-PYTHONPATH=src .venv/bin/uvicorn loan_predictor.serve:app --reload
-# interactive form -> http://127.0.0.1:8000/docs
+make setup     # install deps + start Postgres (Docker) + run migrations
+make run       # start Postgres, migrate, and serve the API (http://127.0.0.1:8001)
+make test      # run the API + model test suite
 ```
 
-`POST /predict` with an application returns a 0-100 score, an approve/deny decision
-at the tuned threshold, and the top SHAP reasons (XGBoost contributions). The loan is
-housing-backed: `property_value` is the mortgaged property's value (the collateral) and
-`loan_to_value_ratio` = loan / property value. Example:
+Key endpoints (JWT-authenticated; CORS enabled for a React SPA):
+
+| Method & path | Purpose |
+|---|---|
+| `POST /api/register/` | Create a user account |
+| `POST /api/token/` `POST /api/token/refresh/` | Obtain / refresh a JWT |
+| `GET /api/me/` | Current user |
+| `GET/POST /api/applications/` | Submit & list housing loan applications |
+| `/admin/` | Django admin (users, applications, decisions, audit) |
+
+Submitting an application returns a 0-100 score, an approve/deny decision at the
+tuned threshold, the top SHAP reasons, and a plain-English `summary` + `explanation`
+(adverse-action reasons for denials). The loan is housing-backed: `property_value` is
+the mortgaged property's value (collateral) and `loan_to_value_ratio` = loan / property
+value. Example body:
 
 ```json
 {"income": 180000, "loan_amount": 200000, "property_value": 500000,
@@ -94,6 +110,7 @@ housing-backed: `property_value` is the mortgaged property's value (the collater
 
 ## Next (per design doc)
 
-FastAPI serving + SHAP reasons → Postgres persistence (users, applications, decisions) →
-Prefect orchestration → Evidently drift monitoring → Docker Compose. Richer applicant
-features (credit score, prior defaults) are the main lever to lift denied-class recall.
+Done: DRF API + JWT/CORS + adverse-action reasons + Postgres persistence + Docker
+(Postgres). Remaining: Prefect orchestration → Evidently drift monitoring → Dockerize
+the Django service → React SPA frontend. Richer applicant features (credit score, prior
+defaults) are the main lever to lift denied-class recall.
