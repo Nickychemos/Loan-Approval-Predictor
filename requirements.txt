@@ -13,3 +13,4 @@ djangorestframework
 psycopg[binary]
 django-cors-headers
 djangorestframework-simplejwt
+prefect

@@ -1,0 +1,4 @@
+{
+  "test_pr_auc": 0.9513,
+  "model": "loan_approval_model_tuned.joblib"
+}

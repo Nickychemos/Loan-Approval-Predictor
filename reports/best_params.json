@@ -9,8 +9,8 @@
     "reg_lambda": 2.4738,
     "subsample": 0.9089
   },
-  "search_cv_pr_auc": 0.9492,
+  "search_cv_pr_auc": 0.9471,
   "test_pr_auc": 0.9513,
-  "search_rows": 300000,
-  "n_iter": 60
+  "search_rows": 120000,
+  "n_iter": 25
 }

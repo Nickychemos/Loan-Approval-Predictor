@@ -44,6 +44,19 @@ tune: ## Hyperparameter-tune XGBoost and save the production model
 
 ml: clean-data train tune ## Run the full ML pipeline (clean -> train -> tune)
 
+# ---------- Orchestration (Prefect) ----------
+# PREFECT_..._TIMEOUT gives the first-run ephemeral server time to migrate its DB.
+PREFECT_ENV := PREFECT_SERVER_EPHEMERAL_STARTUP_TIMEOUT_SECONDS=120
+
+flow: ## Run the retraining flow once (Prefect)
+	$(PREFECT_ENV) $(ML).flows
+
+prefect-server: ## Start the persistent Prefect server + UI (http://localhost:4200) — needed for schedules
+	$(PYTHON) -m prefect server start
+
+flow-serve: ## Register the schedule (Sundays 03:00 EAT) — run `make prefect-server` first
+	$(PREFECT_ENV) $(ML).flows serve
+
 # ---------- Database (Docker Postgres) ----------
 db-up: ## Start the Postgres container (waits until healthy)
 	docker compose up -d --wait postgres
@@ -101,5 +114,5 @@ s: server     ## Alias for server
 m: migrate    ## Alias for migrate
 t: test       ## Alias for test
 
-.PHONY: help venv install data clean-data train evaluate tune ml db-up db-down db-logs \
+.PHONY: help venv install data clean-data train evaluate tune ml flow prefect-server flow-serve db-up db-down db-logs \
         migrate migrations superuser server run shell dbshell reset-db test check clean setup s m t
