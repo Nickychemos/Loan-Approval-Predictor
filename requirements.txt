@@ -1,3 +1,4 @@
+# Data + ML pipeline
 polars
 scikit-learn
 pandas
@@ -5,6 +6,10 @@ numpy
 joblib
 xgboost
 pyarrow
-fastapi
-uvicorn[standard]
-httpx
+
+# Web + API (Django REST Framework, single stack)
+django
+djangorestframework
+psycopg[binary]
+django-cors-headers
+djangorestframework-simplejwt

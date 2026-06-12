@@ -1,0 +1,20 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: loan_postgres
+    environment:
+      POSTGRES_DB: loan_portal
+      POSTGRES_USER: loan
+      POSTGRES_PASSWORD: loanpass
+    ports:
+      - "5434:5432"   # host 5434 to avoid clashing with local :5432/:5433
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U loan -d loan_portal"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  pgdata:
