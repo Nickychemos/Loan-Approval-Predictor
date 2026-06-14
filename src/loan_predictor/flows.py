@@ -92,7 +92,8 @@ def validate_model(candidate_path: str) -> dict:
     """Step 3 — the GATE. Promote only if the candidate beats the current
     production model (and clears an absolute floor)."""
     logger = get_run_logger()
-    candidate_pr = json.loads(BEST_PARAMS.read_text())["test_pr_auc"]
+    bp = json.loads(BEST_PARAMS.read_text())
+    candidate_pr = bp["test_pr_auc"]
     prod_pr = 0.0
     if PROD_META.exists():
         prod_pr = json.loads(PROD_META.read_text()).get("test_pr_auc", 0.0)
@@ -101,7 +102,9 @@ def validate_model(candidate_path: str) -> dict:
     logger.info(f"Candidate PR-AUC={candidate_pr}  |  gate(max floor/prod)={gate}  "
                 f"=> {'PASS' if passed else 'REJECT'}")
     return {"candidate_path": candidate_path, "candidate_pr": candidate_pr,
-            "gate": gate, "passed": passed}
+            "gate": gate, "passed": passed,
+            "candidate_params": bp.get("best_params", {}),
+            "n_iter": bp.get("n_iter"), "search_rows": bp.get("search_rows")}
 
 
 @task
@@ -114,8 +117,14 @@ def promote_model(verdict: dict) -> dict:
         return {"promoted": False, **verdict}
     MODELS_DIR.mkdir(parents=True, exist_ok=True)
     shutil.copy(verdict["candidate_path"], PRODUCTION)
-    PROD_META.write_text(json.dumps({"test_pr_auc": verdict["candidate_pr"],
-                                     "model": PRODUCTION.name}, indent=2))
+    # production_meta.json is the durable record of what's actually deployed.
+    PROD_META.write_text(json.dumps({
+        "test_pr_auc": verdict["candidate_pr"],
+        "model": PRODUCTION.name,
+        "params": verdict.get("candidate_params", {}),
+        "n_iter": verdict.get("n_iter"),
+        "search_rows": verdict.get("search_rows"),
+    }, indent=2))
     logger.info(f"Promoted candidate (PR-AUC {verdict['candidate_pr']}) -> {PRODUCTION.name}")
     return {"promoted": True, **verdict}
 
