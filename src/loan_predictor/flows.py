@@ -18,29 +18,60 @@ Serve on a cron: python -m loan_predictor.flows serve   (Sundays 02:00)
 """
 from __future__ import annotations
 import json
+import os
 import shutil
 import sys
+import urllib.request
 from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[2]
+# Make the ML package importable no matter where/how this script is launched
+# (locally, or pulled fresh onto a cloud worker by Prefect Cloud).
+sys.path.insert(0, str(ROOT / "src"))
 
 from prefect import flow, task, get_run_logger
 
-ROOT = Path(__file__).resolve().parents[2]
-RAW = ROOT / "data/raw/hmda_multistate_2023.csv"
-CLEAN = ROOT / "data/processed/hmda_clean.parquet"
-CANDIDATE = ROOT / "models/loan_approval_model_candidate.joblib"
-PRODUCTION = ROOT / "models/loan_approval_model_tuned.joblib"
-BEST_PARAMS = ROOT / "reports/best_params.json"
-PROD_META = ROOT / "reports/production_meta.json"
+# Where the loan data comes from when it isn't already on disk (CFPB HMDA API).
+HMDA_URL = ("https://ffiec.cfpb.gov/v2/data-browser-api/view/csv"
+            "?states=MD,VA,CO,OR,TN,MO&years=2023&actions_taken=1,3")
+# Folders are env-overridable so a cloud/VM run can point at a PERSISTENT disk
+# (e.g. MODELS_DIR=/data/models on the Oracle VM) without changing code.
+DATA_DIR = Path(os.environ.get("DATA_DIR", ROOT / "data"))
+MODELS_DIR = Path(os.environ.get("MODELS_DIR", ROOT / "models"))
+REPORTS_DIR = ROOT / "reports"
+RAW = DATA_DIR / "raw/hmda_multistate_2023.csv"
+CLEAN = DATA_DIR / "processed/hmda_clean.parquet"
+CANDIDATE = MODELS_DIR / "loan_approval_model_candidate.joblib"
+PRODUCTION = MODELS_DIR / "loan_approval_model_tuned.joblib"
+BEST_PARAMS = REPORTS_DIR / "best_params.json"
+PROD_META = REPORTS_DIR / "production_meta.json"
 MIN_PR_AUC = 0.90   # absolute floor; the real gate is "beat current production"
 
 
-@task(retries=2, retry_delay_seconds=15)
-def clean_data() -> str:
-    """Step 1 — rebuild the model-ready dataset. Retried twice if it fails."""
+@task(retries=3, retry_delay_seconds=30)
+def download_data() -> str:
+    """Step 0 — make sure the raw data exists. Downloads it from the CFPB HMDA
+    API if missing, so a fresh cloud machine can fetch the data by itself.
+    Skips if already on disk (idempotent — only the first run pays the cost)."""
     logger = get_run_logger()
-    logger.info("Cleaning raw HMDA data (dedup, feature-engineer, winsorise)...")
+    if RAW.exists():
+        logger.info(f"Raw data already present ({RAW.name}) — skipping download.")
+        return str(RAW)
+    RAW.parent.mkdir(parents=True, exist_ok=True)
+    logger.info("Downloading HMDA data from the CFPB API (first run only)...")
+    urllib.request.urlretrieve(HMDA_URL, RAW)
+    logger.info(f"Downloaded {RAW.stat().st_size / 1e6:.0f} MB to {RAW.name}")
+    return str(RAW)
+
+
+@task(retries=2, retry_delay_seconds=15)
+def clean_data(raw_path: str) -> str:
+    """Rebuild the model-ready dataset (dedup, feature-engineer, winsorise)."""
+    logger = get_run_logger()
+    logger.info("Cleaning raw HMDA data...")
     from loan_predictor.clean import clean
-    clean(str(RAW), str(CLEAN))
+    CLEAN.parent.mkdir(parents=True, exist_ok=True)
+    clean(raw_path, str(CLEAN))
     logger.info(f"Clean data written to {CLEAN.name}")
     return str(CLEAN)
 
@@ -81,6 +112,7 @@ def promote_model(verdict: dict) -> dict:
         logger.warning(f"Candidate PR-AUC {verdict['candidate_pr']} did not beat the gate "
                        f"{verdict['gate']} — KEEPING current production model.")
         return {"promoted": False, **verdict}
+    MODELS_DIR.mkdir(parents=True, exist_ok=True)
     shutil.copy(verdict["candidate_path"], PRODUCTION)
     PROD_META.write_text(json.dumps({"test_pr_auc": verdict["candidate_pr"],
                                      "model": PRODUCTION.name}, indent=2))
@@ -93,7 +125,8 @@ def retrain_flow(sample: int = 120_000, n_iter: int = 25) -> dict:
     """The pipeline. Prefect runs the tasks in dependency order."""
     logger = get_run_logger()
     logger.info("===== Retrain pipeline started =====")
-    data = clean_data()
+    raw = download_data()
+    data = clean_data(raw)
     candidate = tune_model(data, sample, n_iter)
     verdict = validate_model(candidate)
     result = promote_model(verdict)

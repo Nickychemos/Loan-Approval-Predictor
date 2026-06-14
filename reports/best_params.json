@@ -1,16 +1,16 @@
 {
   "best_params": {
-    "colsample_bytree": 0.7124,
-    "gamma": 0.2713,
-    "learning_rate": 0.0382,
-    "max_depth": 9,
-    "min_child_weight": 1,
-    "n_estimators": 544,
-    "reg_lambda": 2.4738,
-    "subsample": 0.9089
+    "colsample_bytree": 0.7837,
+    "gamma": 0.1669,
+    "learning_rate": 0.0386,
+    "max_depth": 5,
+    "min_child_weight": 6,
+    "n_estimators": 508,
+    "reg_lambda": 2.4398,
+    "subsample": 0.933
   },
-  "search_cv_pr_auc": 0.9471,
-  "test_pr_auc": 0.9513,
-  "search_rows": 120000,
-  "n_iter": 25
+  "search_cv_pr_auc": 0.9413,
+  "test_pr_auc": 0.9476,
+  "search_rows": 20000,
+  "n_iter": 5
 }
