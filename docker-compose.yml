@@ -42,8 +42,11 @@ services:
 
   worker:
     build: .
-    # Connects to Prefect Cloud and runs flows sent to the 'loan-pool' work pool.
-    command: prefect worker start --pool loan-pool
+    # Free Prefect Cloud doesn't allow work pools, so we use a SERVED deployment:
+    # flows.py `serve` registers the retrain deployment in Cloud (with the
+    # Sunday 03:00 schedule) and executes the runs right here. This is the same
+    # mechanism the hello test used, just running on the always-on VM.
+    command: python -m loan_predictor.flows serve
     environment:
       PREFECT_API_URL: ${PREFECT_API_URL}   # from .env (your Cloud workspace)
       PREFECT_API_KEY: ${PREFECT_API_KEY}   # from .env (secret)

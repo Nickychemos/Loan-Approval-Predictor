@@ -1,0 +1,43 @@
+name: Weekly Retrain
+
+# Runs the loan-approval retrain pipeline on GitHub's free compute.
+#   - on a schedule (Sundays 03:00 Nairobi time), and
+#   - on demand via the "Run workflow" button.
+# If PREFECT_API_URL / PREFECT_API_KEY secrets are set, the run also shows up
+# live in your Prefect Cloud dashboard.
+on:
+  schedule:
+    - cron: "0 0 * * 0"   # 00:00 UTC Sunday == 03:00 EAT (Nairobi)
+  workflow_dispatch: {}     # manual "Run workflow" button
+
+jobs:
+  retrain:
+    runs-on: ubuntu-latest
+    env:
+      PREFECT_API_URL: ${{ secrets.PREFECT_API_URL }}
+      PREFECT_API_KEY: ${{ secrets.PREFECT_API_KEY }}
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run the retrain flow (download -> clean -> tune -> validate -> promote)
+        run: PYTHONPATH=src python -m loan_predictor.flows
+
+      - name: Save the trained model + metrics as a downloadable artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: model-and-reports-run-${{ github.run_number }}
+          path: |
+            models/*.joblib
+            reports/*.json
+          if-no-files-found: ignore
