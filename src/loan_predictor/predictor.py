@@ -14,10 +14,13 @@ import joblib
 
 THRESHOLD = float(os.getenv("APPROVAL_THRESHOLD", "0.465"))
 _ROOT = Path(__file__).resolve().parents[2]   # repo root (.../loan_approval_predictor)
+# MODELS_DIR lets the API read models from a shared volume the worker writes to
+# (e.g. /data/models in Docker). Defaults to the repo's models/ folder locally.
+_MODELS_DIR = Path(os.environ.get("MODELS_DIR", _ROOT / "models"))
 MODEL_CANDIDATES = [
-    _ROOT / "models/loan_approval_model_tuned.joblib",
-    _ROOT / "models/loan_approval_model_calibrated.joblib",
-    _ROOT / "models/loan_approval_model.joblib",
+    _MODELS_DIR / "loan_approval_model_tuned.joblib",
+    _MODELS_DIR / "loan_approval_model_calibrated.joblib",
+    _MODELS_DIR / "loan_approval_model.joblib",
 ]
 NUMERIC = ["loan_amount", "loan_to_value_ratio", "property_value", "income",
            "loan_term", "dti", "loan_to_income"]
@@ -64,7 +67,7 @@ def _load():
     if _MODEL is None:
         for p in MODEL_CANDIDATES:
             if p.exists():
-                _MODEL, _MODEL_PATH = joblib.load(p), str(p.relative_to(_ROOT))
+                _MODEL, _MODEL_PATH = joblib.load(p), p.name
                 break
         else:
             raise RuntimeError("No model artifact found — train one first (loan_predictor.tune).")

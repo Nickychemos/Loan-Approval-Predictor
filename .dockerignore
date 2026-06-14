@@ -1,0 +1,11 @@
+# Keep the image small & correct — never copy these in.
+.venv/
+data/
+models/*.joblib
+reports/*.json
+.git/
+__pycache__/
+*.pyc
+webapp/db.sqlite3
+*.csv
+*.parquet

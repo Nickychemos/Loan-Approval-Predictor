@@ -1,3 +1,9 @@
+# The whole stack as containers. On the Oracle VM this is the entire deployment:
+#   postgres  - the database
+#   api       - the Django/DRF service (sign-up, applications, /predict)
+#   worker    - the Prefect worker that runs scheduled flows (the "muscle")
+# api + worker share a volume so the worker SAVES the model and the api READS it.
+
 services:
   postgres:
     image: postgres:16
@@ -7,7 +13,7 @@ services:
       POSTGRES_USER: loan
       POSTGRES_PASSWORD: loanpass
     ports:
-      - "5434:5432"   # host 5434 to avoid clashing with local :5432/:5433
+      - "5434:5432"          # host 5434 -> container 5432 (avoids local clashes)
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -16,5 +22,36 @@ services:
       timeout: 5s
       retries: 5
 
+  api:
+    build: .
+    command: sh -c "python webapp/manage.py migrate && python webapp/manage.py runserver 0.0.0.0:8000"
+    environment:
+      POSTGRES_HOST: postgres   # talk to the postgres SERVICE, not localhost
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: loan_portal
+      POSTGRES_USER: loan
+      POSTGRES_PASSWORD: loanpass
+      MODELS_DIR: /data/models  # read the model the worker saved
+    ports:
+      - "8001:8000"
+    volumes:
+      - appdata:/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  worker:
+    build: .
+    # Connects to Prefect Cloud and runs flows sent to the 'loan-pool' work pool.
+    command: prefect worker start --pool loan-pool
+    environment:
+      PREFECT_API_URL: ${PREFECT_API_URL}   # from .env (your Cloud workspace)
+      PREFECT_API_KEY: ${PREFECT_API_KEY}   # from .env (secret)
+      MODELS_DIR: /data/models   # save the trained model here (shared with api)
+      DATA_DIR: /data/hmda       # download/clean data here (persistent)
+    volumes:
+      - appdata:/data
+
 volumes:
-  pgdata:
+  pgdata:     # database files survive restarts
+  appdata:    # data + trained models survive restarts (shared by worker & api)
