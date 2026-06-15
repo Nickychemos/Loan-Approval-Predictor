@@ -18,6 +18,7 @@ jobs:
     env:
       MONITOR_REFERENCE_STATES: "MD"   # training-region proxy (swap for live data later)
       MONITOR_CURRENT_STATES: "DC"     # recent/new data to check for drift
+      SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}   # drift alerts (optional)
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5

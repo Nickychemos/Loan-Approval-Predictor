@@ -150,6 +150,29 @@ def _fetch_clean(states: str, year: str = "2023", sample: int = 15000) -> pd.Dat
     return df.sample(sample, random_state=42) if len(df) > sample else df
 
 
+PAGES_URL = "https://nickychemos.github.io/Loan-Approval-Predictor/"
+
+
+def notify_slack(summary: dict) -> None:
+    """Post a Slack alert ONLY when drift is detected (no spam on healthy runs).
+    No-op unless SLACK_WEBHOOK_URL is set."""
+    url = os.environ.get("SLACK_WEBHOOK_URL")
+    if not url or summary.get("passed"):
+        return
+    drifted = summary.get("critical_drift") or summary.get("drifted_columns") or []
+    text = (":warning: *Loan model — data drift detected*\n"
+            f"Drift share: {summary['drift_share']} (threshold {summary['share_threshold']})\n"
+            f"Drifted: {', '.join(drifted)}\n"
+            f"Consider retraining. Report: {PAGES_URL}")
+    data = json.dumps({"text": text}).encode()
+    req = urllib.request.Request(url, data=data, headers={"Content-Type": "application/json"})
+    try:
+        urllib.request.urlopen(req, timeout=10)
+        print("  Slack alert sent.")
+    except Exception as e:
+        print(f"  Slack alert failed: {e}")
+
+
 def monitoring_job() -> dict:
     """Production monitoring run: compare a CURRENT data slice against the
     training-region REFERENCE, write the report + verdict, and publish locally.
@@ -165,6 +188,7 @@ def monitoring_job() -> dict:
                              json_path=REPORTS_DIR / "monitoring.json",
                              publish_name=f"monitor-{cur_states}")
     _print(f"Monitoring (ref={ref_states} vs current={cur_states})", summary)
+    notify_slack(summary)
     return summary
 
 
