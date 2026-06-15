@@ -1,0 +1,22 @@
+{
+  "passed": false,
+  "drift_share": 0.636,
+  "share_threshold": 0.3,
+  "n_drifted_columns": 7,
+  "total_columns": 11,
+  "drifted_columns": [
+    "loan_amount",
+    "property_value",
+    "income",
+    "loan_term",
+    "dti",
+    "loan_to_income",
+    "loan_type"
+  ],
+  "critical_drift": [
+    "dti",
+    "income"
+  ],
+  "reference_rows": 15000,
+  "current_rows": 11509
+}

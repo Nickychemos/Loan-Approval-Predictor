@@ -19,3 +19,4 @@ models/*.pkl
 
 # OS
 .DS_Store
+evidently_workspace/
