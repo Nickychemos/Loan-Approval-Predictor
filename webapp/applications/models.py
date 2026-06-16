@@ -68,3 +68,17 @@ class AuditLog(models.Model):
 
     def __str__(self):
         return f"{self.created_at:%Y-%m-%d %H:%M} {self.action}"
+
+
+class AltData(models.Model):
+    """Alternative-data features extracted (via LlamaIndex/LLM) from a borrower's
+    SMS or statements. Captured now; fed to the model once we retrain on data
+    that includes these signals."""
+    application = models.OneToOneField(LoanApplication, on_delete=models.CASCADE,
+                                       related_name="altdata")
+    source = models.CharField(max_length=10, default="sms")   # sms / pdf
+    features = models.JSONField(default=dict)                  # extracted AltDataFeatures
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"AltData ({self.source}) for app #{self.application_id}"

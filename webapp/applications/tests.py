@@ -4,11 +4,13 @@ These guard the CORE behaviour: a strong applicant is approved, a weak applicant
 is denied, decisions are persisted/audited, auth is enforced, and users only see
 their own applications. They exercise the real trained model via the DRF view.
 """
+from unittest.mock import patch
+
 from django.contrib.auth.models import User
 from rest_framework import status
 from rest_framework.test import APITestCase
 
-from applications.models import LoanApplication, Decision, AuditLog
+from applications.models import LoanApplication, Decision, AuditLog, AltData
 
 STRONG = {"income": 180000, "loan_amount": 200000, "property_value": 500000,
           "loan_to_value_ratio": 40, "dti": 18, "loan_term": 360,
@@ -78,6 +80,20 @@ class LoanFlowTests(APITestCase):
         r = self.client.post("/api/applications/", STRONG, format="json")
         self.assertIn(r.status_code, (status.HTTP_401_UNAUTHORIZED,
                                       status.HTTP_403_FORBIDDEN))
+
+    @patch("loan_predictor.altdata.extract_features")
+    def test_altdata_extracted_and_stored(self, mock_extract):
+        """Posting text to /altdata/ extracts features (LLM mocked) and stores them."""
+        from loan_predictor.altdata import AltDataFeatures
+        mock_extract.return_value = AltDataFeatures(
+            active_loans=2, lenders=["Tala", "Branch"], has_regular_salary=True)
+        app_id = self._submit(STRONG)["id"]
+        r = self.client.post(f"/api/applications/{app_id}/altdata/",
+                             {"text": "Tala loan ... Branch repayment ..."}, format="json")
+        self.assertEqual(r.status_code, status.HTTP_201_CREATED, r.content)
+        self.assertEqual(r.json()["features"]["active_loans"], 2)
+        self.assertEqual(AltData.objects.count(), 1)
+        self.assertEqual(AuditLog.objects.filter(action="altdata_extracted").count(), 1)
 
     def test_users_only_see_their_own_applications(self):
         self._submit(STRONG)

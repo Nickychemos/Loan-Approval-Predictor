@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import LoanApplication, Decision, AuditLog
+from .models import LoanApplication, Decision, AuditLog, AltData
 
 
 @admin.register(LoanApplication)
@@ -21,3 +21,9 @@ class DecisionAdmin(admin.ModelAdmin):
 class AuditLogAdmin(admin.ModelAdmin):
     list_display = ("created_at", "user", "action")
     list_filter = ("action", "created_at")
+
+
+@admin.register(AltData)
+class AltDataAdmin(admin.ModelAdmin):
+    list_display = ("application", "source", "created_at")
+    list_filter = ("source", "created_at")

@@ -1,11 +1,12 @@
-from rest_framework import generics, viewsets, permissions
+from rest_framework import generics, viewsets, permissions, status
+from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from loan_predictor.predictor import predict
 
-from .models import LoanApplication, Decision, AuditLog
-from .serializers import RegisterSerializer, LoanApplicationSerializer
+from .models import LoanApplication, Decision, AuditLog, AltData
+from .serializers import RegisterSerializer, LoanApplicationSerializer, AltDataSerializer
 
 FEATURE_FIELDS = ["income", "loan_amount", "property_value", "loan_to_value_ratio",
                   "dti", "loan_term", "loan_type", "loan_purpose", "lien_status",
@@ -58,3 +59,26 @@ class ApplicationViewSet(viewsets.ModelViewSet):
             detail={"application": app.pk, "decision": result["decision"],
                     "score": result["score"]},
         )
+
+    @action(detail=True, methods=["post"])
+    def altdata(self, request, pk=None):
+        """POST /api/applications/{id}/altdata/ with {"text": "...SMS/statement..."}.
+        Extracts alt-data features (LlamaIndex/LLM) and stores them on the application.
+        Captured for future retraining — not yet used by the current model."""
+        application = self.get_object()
+        text = request.data.get("text", "").strip()
+        if not text:
+            return Response({"detail": "Provide 'text' (SMS or statement text)."},
+                            status=status.HTTP_400_BAD_REQUEST)
+        from loan_predictor.altdata import extract_features
+        feats = extract_features(text)
+        obj, _ = AltData.objects.update_or_create(
+            application=application,
+            defaults={"source": request.data.get("source", "sms"),
+                      "features": feats.model_dump()},
+        )
+        AuditLog.objects.create(
+            user=request.user, action="altdata_extracted",
+            detail={"application": application.pk, "active_loans": feats.active_loans},
+        )
+        return Response(AltDataSerializer(obj).data, status=status.HTTP_201_CREATED)
